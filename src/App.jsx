@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { hebrewDateLetters } from './hebcal.js';
+import { useStore } from './store.js';
 import { useReminderSync } from './reminders.js';
 import Reminders from './pages/Reminders.jsx';
 import { useCurrentUser, logout, isProfileComplete } from './store.js';
@@ -33,16 +35,15 @@ export const SCREENS = {
 };
 
 // סדר הכפתורים במסך הבית (שתי עמודות)
-export const HOME_ORDER = ['rosh', 'parasha', 'schedule', 'zmanim', 'classes', 'calendar', 'board', 'books', 'events', 'profile', 'reminders', 'admin'];
+export const HOME_ORDER = ['rosh', 'parasha', 'schedule', 'zmanim', 'classes', 'calendar', 'board', 'books', 'events', 'reminders', 'admin'];
 
 const dateFmt = new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'numeric' });
-const hebFmt = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day: 'numeric', month: 'long' });
 function Clock() {
   const [now, setNow] = useState(new Date());
   useEffect(() => { const i = setInterval(() => setNow(new Date()), 15000); return () => clearInterval(i); }, []);
   return (
     <div className="clock">
-      {dateFmt.format(now)} · {hebFmt.format(now)} · <b>{now.toTimeString().slice(0, 5)}</b>
+      {dateFmt.format(now)} · {hebrewDateLetters(now)} · <b>{now.toTimeString().slice(0, 5)}</b>
     </div>
   );
 }
@@ -50,6 +51,7 @@ function Clock() {
 export default function App() {
   const { user, ready, needsProfile, needsVerify, authUser } = useCurrentUser();
   const [screen, setScreen] = useState(null);
+  const links = useStore('appLinks');
   useReminderSync(Boolean(user && user.status === 'approved'));
 
   // כפתור "חזור" של הטלפון: כל מסך נכנס להיסטוריה של הדפדפן
@@ -82,11 +84,15 @@ export default function App() {
         <div className="hrow">
         {S && !mustComplete ? <button className="back" onClick={() => history.back()}>→</button> : <span />}
         <h2>{S ? S.title : <><img className="hdr-logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="" /> אפיקי דעת</>}</h2>
-        <button className="back" onClick={logout} title="יציאה">⎋</button>
+        <span>
+          <button className="gear" onClick={() => go('profile')} title="פרופיל אישי">⚙️</button>
+          <button className="back" onClick={logout} title="יציאה">⎋</button>
+        </span>
         </div>
         <Clock />
       </header>
       <main>{S ? <S.C user={user} forced={mustComplete} /> : <Home user={user} go={go} />}</main>
+      {links?.youtube && <a className="yt" href={links.youtube} target="_blank" rel="noreferrer">▶ ערוץ היוטיוב של אפיקי דעת</a>}
     </div>
   );
 }

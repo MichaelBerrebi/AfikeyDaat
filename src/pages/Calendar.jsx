@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import { DocSlot } from '../Attach.jsx';
 import { useStore, set, uid, isManager } from '../store.js';
 import { getMonth } from '../hebcal.js';
+
+const CAL_PDF = 'https://hesder.org.il/wp-content/uploads/2026/07/%D7%9C%D7%95%D7%97_%D7%A9%D7%A0%D7%94_%D7%AA%D7%A9%D7%A4%D7%96.pdf';
 
 export default function Calendar({ user }) {
   const events = useStore('events');
@@ -40,6 +43,12 @@ export default function Calendar({ user }) {
 
   return (
     <>
+      <div className="card">
+        <b>לוח השנה של הישיבה</b>
+        <a className="primary-link" href={CAL_PDF} target="_blank" rel="noreferrer">📄 פתח את לוח השנה תשפ״ז (PDF)</a>
+        <small>השבתות (ישיבה / חופשית) מסומנות בשורות הפרשה למטה – המנהל מעדכן לפי הלוח.</small>
+      </div>
+      <DocSlot name="calendar" user={user} manager={manager} label="לוח שנה כקובץ (תמונה / PDF)" />
       <div className="card row">
         <button onClick={() => shift(-1)}>→</button>
         <b>{new Date(ym[0], ym[1] - 1).toLocaleDateString('he-IL', { month: 'long', year: 'numeric' })}</b>

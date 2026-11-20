@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DocSlot } from '../Attach.jsx';
 import { useStore, set, uid, isManager } from '../store.js';
 
 export default function Books({ user }) {
@@ -24,6 +25,7 @@ export default function Books({ user }) {
 
   return (
     <>
+      <DocSlot name="catalog" user={user} manager={manager} label="קטלוג ספרים (תמונה / PDF)" />
       <div className="card">
         <b>הוצאות ואתרים</b>
         {links.map((l) => (

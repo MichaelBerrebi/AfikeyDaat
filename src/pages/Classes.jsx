@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { AttachPicker, Attachment } from '../Attach.jsx';
 import { useStore, set, uid, useClasses, classKey, isManager } from '../store.js';
 
 export default function Classes({ user }) {
@@ -10,16 +11,17 @@ export default function Classes({ user }) {
   const key = classKey(shiur?.id || 'none');
   const items = useStore(key) || [];
   const [type, setType] = useState('summary');
-  const [f, setF] = useState({ title: '', body: '' });
+  const [f, setF] = useState({ title: '', body: '', att: null });
   const canPost = (user.role === 'rabbi' && user.rabbiId === rabbiId) || canPick;
   const phone = contacts[rabbiId];
 
   const shown = items.filter((i) => i.rabbiId === rabbiId && i.type === type).sort((a, b) => b.ts - a.ts);
 
   const post = () => {
-    if (!f.title.trim()) return;
-    set(key, [...items, { id: uid(), rabbiId, type, ...f, ts: Date.now() }]);
-    setF({ title: '', body: '' });
+    if (!f.title.trim() && !f.att) return;
+    if (!f.title.trim()) f.title = 'קובץ מצורף';
+    set(key, [...items, { id: uid(), rabbiId, type, ...f, att: f.att || undefined, ts: Date.now() }]);
+    setF({ title: '', body: '', att: null });
   };
 
   if (!rabbi) return <p className="hint">לא שויכת לרב. פנה להנהלת הישיבה.</p>;
@@ -47,6 +49,8 @@ export default function Classes({ user }) {
           <b>{type === 'summary' ? 'סיכום חדש' : 'הודעה חדשה'}</b>
           <input placeholder="כותרת" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
           <textarea placeholder="תוכן" value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} />
+          <AttachPicker user={user} onDone={(att) => setF({ ...f, att })} />
+          {f.att && <small>צורף: {f.att.fileName}</small>}
           <button className="primary" onClick={post}>פרסם</button>
         </div>
       )}
@@ -55,6 +59,7 @@ export default function Classes({ user }) {
           <small>{idx === 0 && type === 'summary' ? 'סיכום אחרון · ' : ''}{new Date(i.ts).toLocaleDateString('he-IL')}</small>
           <b>{i.title}</b>
           <p style={{ whiteSpace: 'pre-wrap' }}>{i.body}</p>
+          <Attachment att={i.att} />
           {canPost && <button onClick={() => set(key, items.filter((x) => x.id !== i.id))}>מחק</button>}
         </div>
       ))}

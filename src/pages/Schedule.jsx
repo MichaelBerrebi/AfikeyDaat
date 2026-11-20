@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { DocSlot } from '../Attach.jsx';
 import { useStore, set, isManager } from '../store.js';
 
 export default function Schedule({ user }) {
@@ -20,6 +21,7 @@ export default function Schedule({ user }) {
         <button className={day === 'schedule' ? 'on' : ''} onClick={() => { setEdit(false); setDay('schedule'); }}>ראשון–חמישי</button>
         <button className={day === 'scheduleFri' ? 'on' : ''} onClick={() => { setEdit(false); setDay('scheduleFri'); }}>יום שישי</button>
       </div>
+      <DocSlot name={day} user={user} manager={manager} label="סדר יום כקובץ (תמונה / PDF)" />
       <p className="hint">לשינויים חריגים – ראה הודעות ראש הישיבה.</p>
       {schedule.map((s, i) =>
         edit ? (

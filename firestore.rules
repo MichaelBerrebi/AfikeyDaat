@@ -27,6 +27,13 @@ service cloud.firestore {
       allow delete: if manager() && (isOwner() || resource.data.role != 'owner');
     }
 
+    match /files/{id} {
+      allow read: if approved();
+      allow create: if approved() && request.resource.data.uid == request.auth.uid && request.resource.data.data.size() < 900000
+        && (manager() || profile().role == 'rabbi');
+      allow delete: if manager();
+    }
+
     match /photos/{id} {
       allow read: if approved();
       allow create: if approved() && request.resource.data.uid == request.auth.uid && request.resource.data.data.size() < 400000;
@@ -37,7 +44,7 @@ service cloud.firestore {
       // תוכן כיתה: רק לאנשי אותו שיעור, או להנהלה
       // רשימת השיעורים והרבנים גלויה גם לפני הרשמה
       allow read: if key == 'classes' || approved() && (!key.matches('class_.*') || manager() || classKeyOfMine(key));
-      allow write: if (key in ['schedule', 'scheduleFri', 'books', 'bookLinks', 'events', 'parasha', 'roshMsgs', 'roshPhoto', 'classes', 'contacts'] && manager())
+      allow write: if (key in ['schedule', 'scheduleFri', 'books', 'bookLinks', 'events', 'parasha', 'roshMsgs', 'roshPhoto', 'docs', 'appLinks', 'classes', 'contacts'] && manager())
         || (key == 'posts' && approved())
         || (key.matches('class_.*') && approved()
             && (manager() || (profile().role == 'rabbi' && classKeyOfMine(key))));

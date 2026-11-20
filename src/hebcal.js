@@ -58,3 +58,15 @@ export async function getShabbatTimes() {
     rabbeinuTam: rt,
   };
 }
+
+const ONES = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
+const TENS = ['', 'י', 'כ', 'ל'];
+// תאריך עברי באותיות, למשל "י׳ כסלו"
+export function hebrewDateLetters(d = new Date()) {
+  const parts = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day: 'numeric', month: 'long' }).formatToParts(d);
+  const day = parseInt(parts.find((p) => p.type === 'day').value, 10);
+  const month = parts.find((p) => p.type === 'month').value;
+  let s = day === 15 ? 'טו' : day === 16 ? 'טז' : TENS[Math.floor(day / 10)] + ONES[day % 10];
+  s = s.length > 1 ? s.slice(0, -1) + '״' + s.slice(-1) : s + '׳';
+  return `${s} ${month}`;
+}

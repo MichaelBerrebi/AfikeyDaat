@@ -78,6 +78,15 @@ function ClassesEditor() {
   );
 }
 
+function LinksEditor() {
+  const links = useStore('appLinks') || {};
+  const edit = () => {
+    const u = prompt('קישור לערוץ היוטיוב של אפיקי דעת', links.youtube || 'https://www.youtube.com/@');
+    if (u !== null) set('appLinks', { ...links, youtube: u.trim() });
+  };
+  return <button onClick={edit}>עריכת קישור יוטיוב</button>;
+}
+
 export default function Admin({ user }) {
   const users = useStore('users');
   const { shiurim, rabbis } = useClasses();
@@ -104,6 +113,7 @@ export default function Admin({ user }) {
 
   return (
     <>
+      <LinksEditor />
       <ClassesEditor />
       <p className="hint">אישור משתמשים וניהול הרשאות</p>
       <input placeholder="חיפוש לפי שם/טלפון/מייל" value={q} onChange={(e) => setQ(e.target.value)} />

@@ -82,6 +82,8 @@ const SEED = {
   roshMsgs: [{ id: 'm1', title: 'שיחה לקראת השבת', body: 'כאן יופיעו דברי ראש הישיבה.', ts: Date.now() }],
   classes: DEFAULT_CLASSES,
   roshPhoto: '',
+  docs: {}, // קבצים מצורפים כלליים: schedule, scheduleFri, catalog, calendar
+  appLinks: { youtube: 'https://www.youtube.com/results?search_query=%D7%90%D7%A4%D7%99%D7%A7%D7%99+%D7%93%D7%A2%D7%AA' },
   contacts: {}, // טלפונים של רבנים: { rabbiId: phone }
   photos: [],
   // משתמשי דמו: מופעלים רק כשאין Firebase
@@ -93,7 +95,7 @@ const SEED = {
 };
 
 export const classKey = (shiurId) => 'class_' + shiurId;
-const SHARED_KEYS = ['schedule', 'scheduleFri', 'posts', 'books', 'bookLinks', 'events', 'parasha', 'roshMsgs', 'roshPhoto', 'contacts'];
+const SHARED_KEYS = ['schedule', 'scheduleFri', 'posts', 'books', 'bookLinks', 'events', 'parasha', 'roshMsgs', 'roshPhoto', 'docs', 'appLinks', 'contacts'];
 const defaults = (k) => (k in SEED ? SEED[k] : k.startsWith('class_') ? [] : undefined);
 
 const cloud = {};
@@ -271,6 +273,35 @@ export function removeUser(id) {
   const me = currentLocal();
   if (!me || !target || target.role === 'owner' || !canManage(me, target)) throw new Error('forbidden');
   set('users', users.filter((u) => u.id !== id));
+}
+
+// ---- קבצים מצורפים (תמונה / PDF): מסמך נפרד לכל קובץ, נטען לפי דרישה ----
+export const MAX_PDF = 600 * 1024;
+export async function attachFile(file, user) {
+  let data;
+  let type;
+  if (file.type === 'application/pdf') {
+    if (file.size > MAX_PDF) throw new Error('too-big');
+    data = await new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result);
+      r.onerror = rej;
+      r.readAsDataURL(file);
+    });
+    type = 'pdf';
+  } else {
+    data = await compressImage(file, 1400, 0.7);
+    type = 'image';
+  }
+  const rec = { id: uid(), name: file.name, type, data, uid: user.id, ts: Date.now() };
+  if (cloudEnabled) await fb.saveFileDoc(rec);
+  else localStorage.setItem(PREFIX + 'file_' + rec.id, JSON.stringify(rec));
+  return { fileId: rec.id, fileName: rec.name, fileType: type };
+}
+export async function loadFile(id) {
+  if (cloudEnabled) return fb.getFileDoc(id);
+  const raw = localStorage.getItem(PREFIX + 'file_' + id);
+  return raw ? JSON.parse(raw) : null;
 }
 
 // ---- תמונות אירועים ----
