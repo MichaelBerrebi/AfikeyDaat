@@ -16,12 +16,10 @@ jobs:
         with: { distribution: temurin, java-version: 17 }
       - run: npm install
       - run: npx cap add android
-      # אייקון מהלוגו, אם הועלה לקובץ assets/icon-only.png
-      - name: Generate icons
-        if: ${{ hashFiles('assets/icon-only.png') != '' }}
-        continue-on-error: true
-        run: |
-          npx --yes @capacitor/assets generate --android --iconBackgroundColor '#ffffff'
+      # אייקון האפליקציה = לוגו הישיבה
+      - run: cp -r icon-res/* android/app/src/main/res/
+      - run: |
+          printf '<?xml version="1.0" encoding="utf-8"?><resources><color name="ic_launcher_background">#FFFFFF</color></resources>' > android/app/src/main/res/values/ic_launcher_background.xml
       - run: npm run cap:sync
         env:
           VITE_FIREBASE_API_KEY: ${{ secrets.VITE_FIREBASE_API_KEY }}
