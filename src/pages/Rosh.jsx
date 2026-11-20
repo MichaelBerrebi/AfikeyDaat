@@ -1,0 +1,30 @@
+import { useState } from 'react';
+import { useStore, set, uid, isManager } from '../store.js';
+
+export default function Rosh({ user }) {
+  const msgs = useStore('roshMsgs');
+  const [f, setF] = useState({ title: '', body: '' });
+  const post = () => {
+    if (!f.title.trim()) return;
+    set('roshMsgs', [{ id: uid(), ...f, ts: Date.now() }, ...msgs]);
+    setF({ title: '', body: '' });
+  };
+  return (
+    <>
+      {isManager(user) && (
+        <div className="card">
+          <input placeholder="כותרת" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
+          <textarea placeholder="הודעה / דברי תורה" value={f.body} onChange={(e) => setF({ ...f, body: e.target.value })} />
+          <button className="primary" onClick={post}>פרסם</button>
+        </div>
+      )}
+      {msgs.map((m) => (
+        <div className="card" key={m.id}>
+          <small>{new Date(m.ts).toLocaleDateString('he-IL')}</small>
+          <b>{m.title}</b>
+          <p style={{ whiteSpace: 'pre-wrap' }}>{m.body}</p>
+        </div>
+      ))}
+    </>
+  );
+}

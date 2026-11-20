@@ -1,0 +1,34 @@
+const LAT = 31.5236, LON = 34.5953, TZ = 'Asia/Jerusalem'; // שדרות
+
+const json = async (url) => {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(r.status);
+  return r.json();
+};
+
+export const fmtDate = (d) => d.toISOString().slice(0, 10);
+
+export async function getZmanim(date = new Date()) {
+  const d = new Date(date.getTime() - date.getTimezoneOffset() * 6e4);
+  const j = await json(`https://www.hebcal.com/zmanim?cfg=json&latitude=${LAT}&longitude=${LON}&tzid=${TZ}&date=${fmtDate(d)}`);
+  return j.times;
+}
+
+export async function getMonth(year, month) {
+  const j = await json(
+    `https://www.hebcal.com/hebcal?v=1&cfg=json&maj=on&min=on&mod=on&nx=on&s=on&mf=on&i=on&lg=he&year=${year}&month=${month}&geo=pos&latitude=${LAT}&longitude=${LON}&tzid=${TZ}`
+  );
+  return j.items;
+}
+
+export async function getParashaName() {
+  const now = new Date();
+  const items = await getMonth(now.getFullYear(), now.getMonth() + 1);
+  const next = items.find((i) => i.category === 'parashat' && new Date(i.date) >= new Date(fmtDate(now)));
+  return next ? next.hebrew : null;
+}
+
+export async function getDafYomi() {
+  const items = await json(`https://www.hebcal.com/hebcal?v=1&cfg=json&F=on&lg=he&start=${fmtDate(new Date())}&end=${fmtDate(new Date())}`);
+  return items.items?.[0]?.hebrew || null;
+}
