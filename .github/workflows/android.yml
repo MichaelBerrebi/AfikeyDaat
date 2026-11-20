@@ -20,6 +20,10 @@ jobs:
       - run: cp -r icon-res/* android/app/src/main/res/
       - run: |
           printf '<?xml version="1.0" encoding="utf-8"?><resources><color name="ic_launcher_background">#FFFFFF</color></resources>' > android/app/src/main/res/values/ic_launcher_background.xml
+      # תוסף התקנת עדכונים מתוך האפליקציה
+      - run: |
+          cp native/*.java android/app/src/main/java/il/org/afikeydaat/
+          sed -i 's#<application#<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <application#' android/app/src/main/AndroidManifest.xml
       - run: npm run cap:sync
         env:
           VITE_APP_BUILD: ${{ github.run_number }}

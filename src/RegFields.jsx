@@ -19,7 +19,7 @@ export default function RegFields({ f, setF, hideEmail }) {
     <>
       <select value={f.userType} onChange={up('userType')}>
         <option value="student">אני תלמיד</option>
-        <option value="rabbi">אני רב (דורש אישור הנהלה)</option>
+        <option value="rabbi">אני ר״מ בישיבה (דורש אישור הנהלה)</option>
       </select>
       <input placeholder="שם מלא" value={f.name} onChange={up('name')} />
       <input placeholder="טלפון (05XXXXXXXX)" inputMode="tel" value={f.phone} onChange={up('phone')} />
@@ -34,7 +34,7 @@ export default function RegFields({ f, setF, hideEmail }) {
         {shiurim.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
       </select>
       <select value={f.rabbiId} onChange={up('rabbiId')}>
-        <option value="">{f.userType === 'rabbi' ? 'בחר את עצמך…' : 'בחר רב מלמד…'}</option>
+        <option value="">{f.userType === 'rabbi' ? 'בחר את עצמך…' : 'בחר ר״מ…'}</option>
         {rabbis.filter((r) => r.shiurId === f.shiurId).map((r) => <option key={r.id} value={r.id}>{r.name}</option>)}
       </select>
       <input placeholder="תעודת זהות" inputMode="numeric" value={f.idNumber} onChange={up('idNumber')} />

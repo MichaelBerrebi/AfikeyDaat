@@ -3,6 +3,8 @@ import { hebrewDateLetters } from './hebcal.js';
 import { useStore } from './store.js';
 import { useReminderSync } from './reminders.js';
 import Updater from './Updater.jsx';
+import InfoPage from './pages/InfoPage.jsx';
+import Contact from './pages/Contact.jsx';
 import Reminders from './pages/Reminders.jsx';
 import { useCurrentUser, logout, isProfileComplete, isManager } from './store.js';
 import Auth from './Auth.jsx';
@@ -27,16 +29,19 @@ export const SCREENS = {
   books: { title: 'אוצר הספרים', icon: '📚', C: Books },
   calendar: { title: 'לוח שנה', icon: '📅', C: Calendar },
   parasha: { title: 'פרשת שבוע', icon: '📜', C: Parasha },
-  classes: { title: 'הכיתה שלי', icon: '🎓', C: Classes },
+  classes: { title: 'הר״מ שלי', icon: '🎓', C: Classes },
   rosh: { title: 'לשכת ראש הישיבה', icon: 'ROSH', C: Rosh },
   profile: { title: 'פרופיל אישי', icon: '👤', C: Profile },
   events: { title: 'אירועים ותמונות', icon: '📷', C: Events },
+  hosting: { title: 'אירוח', icon: '🛏️', C: (p) => <InfoPage {...p} name="hosting" /> },
+  memorial: { title: 'הנצחות', icon: '🕊️', C: (p) => <InfoPage {...p} name="memorial" /> },
+  contact: { title: 'יצירת קשר', icon: '📞', C: Contact },
   reminders: { title: 'תזכורות', icon: '🔔', C: Reminders },
   admin: { title: 'ניהול', icon: '⚙️', C: Admin, managerOnly: true },
 };
 
 // סדר הכפתורים במסך הבית (שתי עמודות)
-export const HOME_ORDER = ['rosh', 'parasha', 'schedule', 'zmanim', 'classes', 'calendar', 'board', 'books', 'events', 'reminders'];
+export const HOME_ORDER = ['rosh', 'parasha', 'schedule', 'zmanim', 'classes', 'calendar', 'board', 'books', 'events', 'hosting', 'memorial', 'contact', 'reminders'];
 
 const dateFmt = new Intl.DateTimeFormat('he-IL', { weekday: 'long' });
 function Clock() {

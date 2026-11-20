@@ -17,12 +17,7 @@ export const canManage = (actor, target) => isManager(actor) && (target.role !==
 
 // שמות בדויים – לעדכן דרך מסך הניהול
 export const DEFAULT_CLASSES = {
-  shiurim: [
-    { id: 's1', name: 'שיעור א׳' },
-    { id: 's2', name: 'שיעור ב׳' },
-    { id: 's3', name: 'שיעור ג׳' },
-    { id: 's4', name: 'שיעור ד׳' },
-  ],
+  shiurim: ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י'].map((l, i) => ({ id: 's' + (i + 1), name: `שיעור ${l}׳` })),
   rabbis: [
     { id: 'r1', name: 'הרב אברהם כהן', shiurId: 's1' },
     { id: 'r2', name: 'הרב יצחק לוי', shiurId: 's1' },
@@ -84,6 +79,10 @@ const SEED = {
   roshPhoto: '',
   docs: {}, // קבצים מצורפים כלליים: schedule, scheduleFri, catalog, calendar
   appLinks: { youtube: 'https://www.youtube.com/results?search_query=%D7%90%D7%A4%D7%99%D7%A7%D7%99+%D7%93%D7%A2%D7%AA' },
+  pages: {
+    hosting: { text: 'פרטי האירוח יעודכנו בקרוב על ידי הנהלת הישיבה.' },
+    memorial: { text: 'דף ההנצחות יעודכן בקרוב על ידי הנהלת הישיבה.' },
+  },
   contacts: {}, // טלפונים של רבנים: { rabbiId: phone }
   photos: [],
   // משתמשי דמו: מופעלים רק כשאין Firebase
@@ -95,7 +94,7 @@ const SEED = {
 };
 
 export const classKey = (shiurId) => 'class_' + shiurId;
-const SHARED_KEYS = ['schedule', 'scheduleFri', 'posts', 'books', 'bookLinks', 'events', 'parasha', 'roshMsgs', 'roshPhoto', 'docs', 'appLinks', 'contacts'];
+const SHARED_KEYS = ['schedule', 'scheduleFri', 'posts', 'books', 'bookLinks', 'events', 'parasha', 'roshMsgs', 'roshPhoto', 'docs', 'pages', 'appLinks', 'contacts'];
 const defaults = (k) => (k in SEED ? SEED[k] : k.startsWith('class_') ? [] : undefined);
 
 const cloud = {};
