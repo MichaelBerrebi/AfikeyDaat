@@ -36,7 +36,10 @@ describe('app', () => {
   it('admin can open every screen without crashing', async () => {
     await login('0544534345');
     for (const [k, s] of Object.entries(SCREENS)) {
-      if (k === 'profile') fireEvent.click(screen.getByTitle('פרופיל אישי'));
+      if (k === 'profile' || k === 'admin') {
+        fireEvent.click(screen.getByTitle('הגדרות'));
+        fireEvent.click(screen.getByText(s.icon + ' ' + (k === 'profile' ? 'פרופיל אישי' : 'ניהול')));
+      }
       else fireEvent.click(screen.getByText(s.title, { selector: 'button' }));
       await waitFor(() => expect(screen.getByRole('heading', { name: s.title })).toBeTruthy());
       fireEvent.click(document.querySelector('header .back'));
