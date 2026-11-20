@@ -52,7 +52,7 @@ export default function App() {
     <div className="app">
       <header>
         {S && !mustComplete ? <button className="back" onClick={() => setScreen(null)}>→</button> : <span />}
-        <h2>{S ? S.title : 'אפיקי דעת'}</h2>
+        <h2>{S ? S.title : <><img className="hdr-logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="" /> אפיקי דעת</>}</h2>
         <button className="back" onClick={logout} title="יציאה">⎋</button>
       </header>
       <main>{S ? <S.C user={user} forced={mustComplete} /> : <Home user={user} go={setScreen} />}</main>

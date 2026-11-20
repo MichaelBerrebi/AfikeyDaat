@@ -24,6 +24,10 @@ export default function Home({ user, go }) {
 
   return (
     <>
+      <div className="banner">
+        <img src={`${import.meta.env.BASE_URL}building.jpg`} alt="בית המדרש" />
+        <img className="banner-logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="לוגו הישיבה" />
+      </div>
       <p className="hello">שלום, {user.name}</p>
       {last && (
         <div className="card hl rosh-card" onClick={() => go('rosh')}>

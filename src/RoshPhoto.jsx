@@ -5,7 +5,7 @@ import { useStore } from './store.js';
 export default function RoshPhoto({ size = 44 }) {
   const custom = useStore('roshPhoto');
   const [bad, setBad] = useState(false);
-  if (bad && !custom) return <span style={{ fontSize: size * 0.8 }}>🕯️</span>;
+  if (bad && !custom) return <img className="rosh-img" style={{ width: size, height: size }} alt="" src={`${import.meta.env.BASE_URL}logo.png`} />;
   return (
     <img
       className="rosh-img"
