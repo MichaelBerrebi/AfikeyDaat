@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { hebrewDateLetters } from './hebcal.js';
 import { useStore } from './store.js';
 import { useReminderSync } from './reminders.js';
+import Updater from './Updater.jsx';
 import Reminders from './pages/Reminders.jsx';
 import { useCurrentUser, logout, isProfileComplete } from './store.js';
 import Auth from './Auth.jsx';
@@ -91,7 +92,7 @@ export default function App() {
         </div>
         <Clock />
       </header>
-      <main>{S ? <S.C user={user} forced={mustComplete} /> : <Home user={user} go={go} />}</main>
+      <main>{!S && <Updater />}{S ? <S.C user={user} forced={mustComplete} /> : <Home user={user} go={go} />}</main>
       {links?.youtube && <a className="yt" href={links.youtube} target="_blank" rel="noreferrer">▶ ערוץ היוטיוב של אפיקי דעת</a>}
     </div>
   );
