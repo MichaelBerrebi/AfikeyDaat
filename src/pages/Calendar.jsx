@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useStore, set, isManager } from '../store.js';
+import { useStore, set, uid, isManager } from '../store.js';
 import { getMonth } from '../hebcal.js';
 
 export default function Calendar({ user }) {
@@ -13,8 +13,8 @@ export default function Calendar({ user }) {
   const key = `${ym[0]}-${String(ym[1]).padStart(2, '0')}`;
   const mine = events.filter((e) => e.date.startsWith(key));
   const all = [
-    ...mine.map((e) => ({ date: e.date, title: e.title, kind: e.kind })),
-    ...heb.filter((h) => h.category !== 'parashat' || true).map((h) => ({ date: h.date.slice(0, 10), title: h.hebrew || h.title, kind: h.category === 'parashat' ? 'פרשה' : 'חג/מועד' })),
+    ...mine.map((e) => ({ ...e, own: true })),
+    ...heb.filter((h) => true).map((h) => ({ date: h.date.slice(0, 10), title: h.hebrew || h.title, kind: h.category === 'parashat' ? 'פרשה' : 'חג/מועד' })),
   ].sort((a, b) => a.date.localeCompare(b.date));
 
   const shift = (n) => {
@@ -23,9 +23,20 @@ export default function Calendar({ user }) {
   };
   const add = () => {
     if (!f.date || !f.title) return;
-    set('events', [...events, f]);
+    set('events', [...events, { id: uid(), ...f }]);
     setF({ date: '', title: '', kind: 'ישיבה' });
   };
+
+  const remove = (e) => set('events', events.filter((x) => (e.id ? x.id !== e.id : !(x.date === e.date && x.title === e.title))));
+  // שבת: ללא סימון ← שבת ישיבה ← שבת חופשית ← ללא
+  const cycleShabbat = (date) => {
+    const cur = events.find((x) => x.date === date && x.kind !== 'אירוע');
+    const rest = events.filter((x) => x !== cur);
+    if (!cur) set('events', [...rest, { id: uid(), date, title: 'שבת ישיבה', kind: 'ישיבה' }]);
+    else if (cur.kind === 'ישיבה') set('events', [...rest, { id: uid(), date, title: 'שבת חופשית', kind: 'חופשית' }]);
+    else set('events', rest);
+  };
+  const manager = isManager(user);
 
   return (
     <>
@@ -38,6 +49,8 @@ export default function Calendar({ user }) {
         <div className={'card row ev-' + e.kind} key={i}>
           <span>{new Date(e.date).toLocaleDateString('he-IL', { day: 'numeric', month: 'short', weekday: 'short' })}</span>
           <b>{e.title}</b>
+          {manager && e.own && <button onClick={() => remove(e)}>מחק</button>}
+          {manager && e.kind === 'פרשה' && <button onClick={() => cycleShabbat(e.date)}>שבת ישיבה/חופשית</button>}
         </div>
       ))}
       {isManager(user) && (

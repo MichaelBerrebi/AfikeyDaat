@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { useStore, set, uid, isManager } from '../store.js';
+import { useStore, set, uid, isManager, compressImage } from '../store.js';
+import RoshPhoto from '../RoshPhoto.jsx';
 
 export default function Rosh({ user }) {
   const msgs = useStore('roshMsgs');
@@ -9,8 +10,16 @@ export default function Rosh({ user }) {
     set('roshMsgs', [{ id: uid(), ...f, ts: Date.now() }, ...msgs]);
     setF({ title: '', body: '' });
   };
+  const pickPhoto = async (e) => {
+    const file = e.target.files[0];
+    if (file) set('roshPhoto', await compressImage(file, 400, 0.8));
+  };
   return (
     <>
+      <div style={{ textAlign: 'center' }}><RoshPhoto size={110} /></div>
+      {isManager(user) && (
+        <label className="hint">החלפת תמונת ראש הישיבה: <input type="file" accept="image/*" onChange={pickPhoto} /></label>
+      )}
       {isManager(user) && (
         <div className="card">
           <input placeholder="כותרת" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
@@ -23,6 +32,7 @@ export default function Rosh({ user }) {
           <small>{new Date(m.ts).toLocaleDateString('he-IL')}</small>
           <b>{m.title}</b>
           <p style={{ whiteSpace: 'pre-wrap' }}>{m.body}</p>
+          {isManager(user) && <button onClick={() => set('roshMsgs', msgs.filter((x) => x.id !== m.id))}>מחק</button>}
         </div>
       ))}
     </>

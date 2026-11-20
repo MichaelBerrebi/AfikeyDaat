@@ -4,23 +4,38 @@ import * as fb from './firebase.js';
 const { cloudEnabled } = fb;
 export { cloudEnabled };
 
-// שכבת נתונים: כרגע localStorage. בהמשך מחליפים ב-Firebase/שרת בלי לגעת במסכים.
 const PREFIX = 'sy_';
+const PHONE_DOMAIN = '@phone.yeshiva.app';
 const listeners = new Set();
 
-export const SHIURIM = ['שיעור א׳', 'שיעור ב׳', 'שיעור ג׳', 'שיעור ד׳'];
+export const ROLE_LABELS = { owner: 'מנהל ראשי', admin: 'מנהל משנה', rosh: 'ראש ישיבה', rabbi: 'רב', student: 'תלמיד' };
+export const STUDENT_STATUS = { active: 'תלמיד פעיל', army: 'בצבא' };
 
-// שמות בדויים – לעדכן בהמשך
-export const RABBIS = [
-  { id: 'r1', name: 'הרב אברהם כהן', shiur: 'שיעור א׳' },
-  { id: 'r2', name: 'הרב יצחק לוי', shiur: 'שיעור א׳' },
-  { id: 'r3', name: 'הרב משה ישראלי', shiur: 'שיעור ב׳' },
-  { id: 'r4', name: 'הרב דוד מזרחי', shiur: 'שיעור ב׳' },
-  { id: 'r5', name: 'הרב יעקב בן דוד', shiur: 'שיעור ג׳' },
-  { id: 'r6', name: 'הרב שמואל פרץ', shiur: 'שיעור ג׳' },
-  { id: 'r7', name: 'הרב אליהו גולן', shiur: 'שיעור ד׳' },
-  { id: 'r8', name: 'הרב נתן אזולאי', shiur: 'שיעור ד׳' },
-];
+export const isManager = (u) => !!u && ['rosh', 'admin', 'owner'].includes(u.role);
+// מנהל משנה לא יכול לשנות או למחוק את המנהל הראשי
+export const canManage = (actor, target) => isManager(actor) && (target.role !== 'owner' || actor.role === 'owner');
+
+// שמות בדויים – לעדכן דרך מסך הניהול
+export const DEFAULT_CLASSES = {
+  shiurim: [
+    { id: 's1', name: 'שיעור א׳' },
+    { id: 's2', name: 'שיעור ב׳' },
+    { id: 's3', name: 'שיעור ג׳' },
+    { id: 's4', name: 'שיעור ד׳' },
+  ],
+  rabbis: [
+    { id: 'r1', name: 'הרב אברהם כהן', shiurId: 's1' },
+    { id: 'r2', name: 'הרב יצחק לוי', shiurId: 's1' },
+    { id: 'r3', name: 'הרב משה ישראלי', shiurId: 's2' },
+    { id: 'r4', name: 'הרב דוד מזרחי', shiurId: 's2' },
+    { id: 'r5', name: 'הרב יעקב בן דוד', shiurId: 's3' },
+    { id: 'r6', name: 'הרב שמואל פרץ', shiurId: 's3' },
+    { id: 'r7', name: 'הרב אליהו גולן', shiurId: 's4' },
+    { id: 'r8', name: 'הרב נתן אזולאי', shiurId: 's4' },
+  ],
+};
+
+const baseUser = { email: '', status: 'approved', rabbiId: '', shiurId: '', studentStatus: '', idHash: '' };
 
 const SEED = {
   schedule: [
@@ -44,38 +59,54 @@ const SEED = {
     { id: 'b1', title: 'ספר לדוגמה א׳', price: 60, sale: 45, note: 'מבצע השבוע' },
     { id: 'b2', title: 'ספר לדוגמה ב׳', price: 90, sale: null, note: 'חדש' },
   ],
+  // הכתובות לא אומתו – המנהל יכול לערוך אותן במסך הספרים
+  bookLinks: [
+    { id: 'l1', title: 'הוצאת עוז והדר', url: 'https://www.ozvehadar.co.il' },
+    { id: 'l2', title: 'הוצאת מכון ירושלים', url: 'https://www.machonyerushalayim.org' },
+    { id: 'l3', title: 'הוצאת מכון הרב קוק', url: 'https://www.mhrk.org.il' },
+  ],
   events: [
-    { date: '2026-12-04', title: 'שבת ישיבה', kind: 'ישיבה' },
-    { date: '2026-12-11', title: 'שבת חופשית', kind: 'חופשית' },
-    { date: '2026-12-18', title: 'שבת ישיבה', kind: 'ישיבה' },
-    { date: '2026-12-25', title: 'שבת חופשית', kind: 'חופשית' },
+    { id: 'e1', date: '2026-12-04', title: 'שבת ישיבה', kind: 'ישיבה' },
+    { id: 'e2', date: '2026-12-11', title: 'שבת חופשית', kind: 'חופשית' },
+    { id: 'e3', date: '2026-12-18', title: 'שבת ישיבה', kind: 'ישיבה' },
+    { id: 'e4', date: '2026-12-25', title: 'שבת חופשית', kind: 'חופשית' },
   ],
   parasha: { title: '', url: '', text: 'ממתין להעלאת דף פרשת השבוע מההנהלה.' },
   roshMsgs: [{ id: 'm1', title: 'שיחה לקראת השבת', body: 'כאן יופיעו דברי ראש הישיבה.', ts: Date.now() }],
+  classes: DEFAULT_CLASSES,
+  roshPhoto: '',
+  contacts: {}, // טלפונים של רבנים: { rabbiId: phone }
+  photos: [],
+  // משתמשי דמו: מופעלים רק כשאין Firebase
   users: [
-    { id: 'u0', name: 'מנהל', phone: '0544534345', email: '', role: 'admin', status: 'approved', rabbiId: null, shiur: null, shiurIdx: null, idHash: '', pwHash: 'ff2a789fb51fa47d789bf800682b03e4296d78f2936900c052df9fdae56d7209' },
+    { ...baseUser, id: 'u0', name: 'מנהל ראשי', phone: '0544534345', role: 'owner', pwHash: 'ff2a789fb51fa47d789bf800682b03e4296d78f2936900c052df9fdae56d7209' },
+    { ...baseUser, id: 'u1', name: 'אוריאל משה ברבי', phone: '0585343456', role: 'admin', pwHash: '8c648ee16b52dc2276ec6d8dcdc52e09bde04c90605a03be8bf646c4c271813b' },
   ],
   session: null,
 };
 
-// תוכן הכיתות מחולק לפי שיעורים: class_0 … class_3
-export const classKey = (shiur) => 'class_' + Math.max(0, SHIURIM.indexOf(shiur));
-SHIURIM.forEach((_, i) => { SEED['class_' + i] = []; });
+export const classKey = (shiurId) => 'class_' + shiurId;
+const SHARED_KEYS = ['schedule', 'posts', 'books', 'bookLinks', 'events', 'parasha', 'roshMsgs', 'roshPhoto', 'contacts'];
+const defaults = (k) => (k in SEED ? SEED[k] : k.startsWith('class_') ? [] : undefined);
 
-const SHARED_KEYS = ['schedule', 'posts', 'books', 'events', 'parasha', 'roshMsgs', ...SHIURIM.map((_, i) => 'class_' + i)];
 const cloud = {};
 const notify = () => listeners.forEach((l) => l());
 
 const read = (k) => {
   if (cloudEnabled) {
     if (k === 'users') return cloud.users || [];
-    if (k in cloud) return cloud[k];
-    return SEED[k];
+    return k in cloud ? cloud[k] : defaults(k);
   }
   const raw = localStorage.getItem(PREFIX + k);
-  const v = raw === null ? SEED[k] : JSON.parse(raw);
-  // מנהל ברירת המחדל תמיד מסונכרן עם הקוד, גם אם נשארו נתונים ישנים בטלפון
-  return k === 'users' ? [...SEED.users, ...v.filter((u) => u.id !== SEED.users[0].id)] : v;
+  const v = raw === null ? defaults(k) : JSON.parse(raw);
+  if (k !== 'users') return v;
+  // משתמשי הדמו תמיד שומרים על תפקיד וסיסמה מהקוד
+  const ids = SEED.users.map((u) => u.id);
+  const seeded = SEED.users.map((s) => {
+    const stored = v.find((u) => u.id === s.id) || {};
+    return { ...s, ...stored, role: s.role, status: 'approved', pwHash: s.pwHash };
+  });
+  return [...seeded, ...v.filter((u) => !ids.includes(u.id))];
 };
 export const get = read;
 export const set = (k, v) => {
@@ -97,29 +128,45 @@ export function useStore(key) {
   return read(key);
 }
 
-export const uid = () => Math.random().toString(36).slice(2, 10);
+export function useClasses() {
+  const c = useStore('classes');
+  const contacts = useStore('contacts') || {};
+  return { shiurim: c.shiurim, rabbis: c.rabbis, contacts };
+}
+
+export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36).slice(-3);
 
 // ---- משתמשים והתחברות ----
-const pwHash = async (pw) => hashWith('sy-pw:', pw);
 const hashWith = async (salt, s) => {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
 };
+const pwHash = (pw) => hashWith('sy-pw:', pw);
 export const hashId = (idNumber) => hashWith('sy-salt:', idNumber);
 
-const PHONE_DOMAIN = '@phone.yeshiva.app';
 export const normPhone = (p) => {
   const d = String(p).replace(/\D/g, '');
   return d.startsWith('972') ? '0' + d.slice(3) : d;
 };
 const normId = (s) => (s.includes('@') ? s.trim().toLowerCase() : normPhone(s));
 const authEmail = (identifier) => (identifier.includes('@') ? normId(identifier) : `${normId(identifier)}${PHONE_DOMAIN}`);
-
 export const isRealEmail = (e) => Boolean(e) && !e.endsWith(PHONE_DOMAIN);
 
-const buildProfile = async ({ name, phone, email, shiur, rabbiId, idNumber }) => ({
-  name, phone: normPhone(phone), email: email || '', role: 'student', status: 'pending',
-  rabbiId, shiur, shiurIdx: SHIURIM.indexOf(shiur), idHash: await hashId(idNumber),
+const SELF_EDITABLE = ['name', 'phone', 'email', 'studentStatus'];
+
+const currentLocal = () => read('users').find((u) => u.id === read('session'));
+
+const buildProfile = async (f) => ({
+  name: f.name.trim(),
+  phone: normPhone(f.phone),
+  email: (f.email || '').trim().toLowerCase(),
+  role: 'student',
+  requestedType: f.userType === 'rabbi' ? 'rabbi' : 'student',
+  status: 'pending',
+  studentStatus: f.userType === 'rabbi' ? '' : f.studentStatus || 'active',
+  shiurId: f.shiurId,
+  rabbiId: f.rabbiId,
+  idHash: await hashId(f.idNumber),
 });
 
 export async function register(f) {
@@ -127,9 +174,9 @@ export async function register(f) {
   if (cloudEnabled) {
     cloud.registering = true;
     try {
-      const id = await fb.signUpEmail(authEmail(f.email || f.phone), f.password);
+      const id = await fb.signUpEmail(authEmail(profile.email || profile.phone), f.password);
       await fb.saveProfile(id, profile);
-      if (isRealEmail(f.email)) await fb.sendVerify();
+      if (isRealEmail(profile.email)) await fb.sendVerify();
     } finally {
       cloud.registering = false;
       notify();
@@ -137,7 +184,7 @@ export async function register(f) {
     return;
   }
   const users = read('users');
-  if (users.some((u) => u.phone === normPhone(f.phone) || (f.email && u.email === f.email))) throw new Error('exists');
+  if (users.some((u) => u.phone === profile.phone || (profile.email && u.email === profile.email))) throw new Error('exists');
   const u = { id: uid(), ...profile, pwHash: await pwHash(f.password) };
   set('users', [...users, u]);
   set('session', u.id);
@@ -175,7 +222,7 @@ export async function resetPassword({ identifier, idNumber, newPassword }) {
   const idHash = await hashId(idNumber);
   const u = read('users').find((x) => (x.phone === id || x.email === id) && x.idHash && x.idHash === idHash);
   if (!u) throw new Error('bad-credentials');
-  updateUser(u.id, { pwHash: await pwHash(newPassword.trim()) });
+  updateUser(u.id, { pwHash: await pwHash(newPassword.trim()) }, true);
 }
 
 export function logout() {
@@ -183,35 +230,85 @@ export function logout() {
   set('session', null);
 }
 
-export function updateUser(id, patch) {
+export function updateUser(id, patch, system = false) {
   if (cloudEnabled) return fb.saveProfile(id, patch);
-  set('users', read('users').map((u) => (u.id === id ? { ...u, ...patch } : u)));
-}
-export function removeUser(id) {
-  if (cloudEnabled) return fb.removeProfile(id);
-  set('users', read('users').filter((u) => u.id !== id));
+  const users = read('users');
+  const target = users.find((u) => u.id === id);
+  const me = currentLocal();
+  if (!system) {
+    if (!me || !target) throw new Error('forbidden');
+    if (me.id === id && !isManager(me)) {
+      if (Object.keys(patch).some((k) => !SELF_EDITABLE.includes(k))) throw new Error('forbidden');
+    } else if (!canManage(me, target) || (patch.role === 'owner' && me.role !== 'owner')) {
+      throw new Error('forbidden');
+    }
+  }
+  set('users', users.map((u) => (u.id === id ? { ...u, ...patch } : u)));
 }
 
-// מצב ענן: מאזינים לפי הרשאות המשתמש המחובר
+export function removeUser(id) {
+  if (cloudEnabled) return fb.removeProfile(id);
+  const users = read('users');
+  const target = users.find((u) => u.id === id);
+  const me = currentLocal();
+  if (!me || !target || target.role === 'owner' || !canManage(me, target)) throw new Error('forbidden');
+  set('users', users.filter((u) => u.id !== id));
+}
+
+// ---- תמונות אירועים ----
+export async function addPhoto({ data, caption, eventId, eventTitle }, user) {
+  const p = { id: uid(), data, caption, eventId, eventTitle, uid: user.id, by: user.name, ts: Date.now() };
+  if (cloudEnabled) return fb.addPhoto(p);
+  set('photos', [p, ...read('photos')]);
+}
+export function removePhoto(id) {
+  if (cloudEnabled) return fb.deletePhoto(id);
+  set('photos', read('photos').filter((p) => p.id !== id));
+}
+
+// ---- מצב ענן: מאזינים לפי הרשאות המשתמש המחובר ----
 if (cloudEnabled) {
   cloud.authReady = false;
+  const classUnsubs = {};
   let unsubs = [];
   let unsubProfiles = null;
   let unsubMe = null;
+  let unsubPhotos = null;
+
+  const syncClassWatchers = () => {
+    const p = cloud.me;
+    const want = new Set();
+    if (p?.status === 'approved') {
+      if (isManager(p)) (cloud.classes || SEED.classes).shiurim.forEach((s) => want.add(classKey(s.id)));
+      else if (p.shiurId) want.add(classKey(p.shiurId));
+    }
+    Object.keys(classUnsubs).forEach((k) => {
+      if (!want.has(k)) { classUnsubs[k](); delete classUnsubs[k]; delete cloud[k]; }
+    });
+    want.forEach((k) => {
+      if (!classUnsubs[k]) classUnsubs[k] = fb.watchKey(k, (v) => { cloud[k] = v; notify(); });
+    });
+  };
+
+  // רשימת הכיתות והרבנים (בלי טלפונים) גלויה גם למי שעדיין לא נרשם
+  fb.watchKey('classes', (v) => { cloud.classes = v; syncClassWatchers(); notify(); });
+
   fb.onAuth((a) => {
-    unsubMe?.(); unsubs.forEach((f) => f()); unsubProfiles?.();
-    unsubMe = null; unsubs = []; unsubProfiles = null;
-    cloud.me = null; cloud.users = [];
+    unsubMe?.(); unsubs.forEach((f) => f()); unsubProfiles?.(); unsubPhotos?.();
+    unsubMe = null; unsubs = []; unsubProfiles = null; unsubPhotos = null;
+    cloud.me = null; cloud.users = []; cloud.photos = [];
     cloud.authUser = a ? { uid: a.uid, email: a.email || '', emailVerified: a.emailVerified, name: a.displayName || '' } : null;
+    syncClassWatchers();
     if (!a) { cloud.authReady = true; return notify(); }
     unsubMe = fb.watchProfile(a.uid, (p) => {
       cloud.me = p;
       cloud.authReady = true;
       if (p?.status === 'approved' && !unsubs.length) {
         unsubs = SHARED_KEYS.map((k) => fb.watchKey(k, (v) => { cloud[k] = v; notify(); }));
+        unsubPhotos = fb.watchPhotos((l) => { cloud.photos = l; notify(); });
       }
-      const mgr = p?.status === 'approved' && ['rosh', 'admin'].includes(p.role);
-      if (mgr && !unsubProfiles) unsubProfiles = fb.watchProfiles((l) => { cloud.users = l; notify(); });
+      if (isManager(p) && p.status === 'approved' && !unsubProfiles) unsubProfiles = fb.watchProfiles((l) => { cloud.users = l; notify(); });
+      syncClassWatchers();
       notify();
     });
   });
@@ -232,6 +329,7 @@ export function useCurrentUser() {
   const id = read('session');
   return { user: read('users').find((u) => u.id === id) || null, ready: true };
 }
+
 export const validIsraeliId = (s) => {
   s = String(s).padStart(9, '0');
   if (!/^\d{9}$/.test(s)) return false;
@@ -244,5 +342,38 @@ export const validIsraeliId = (s) => {
   return sum % 10 === 0;
 };
 
-export const isStaff = (u) => u && ['rabbi', 'rosh', 'admin'].includes(u.role);
-export const isManager = (u) => u && ['rosh', 'admin'].includes(u.role);
+export const validPhone = (p) => /^05\d{8}$/.test(normPhone(p));
+export const validEmail = (e) => /^\S+@\S+\.\S+$/.test((e || '').trim());
+
+// פרופיל חובה: שם מלא, טלפון, מייל, כיתה, ורב/סטטוס. מנהלים פטורים.
+export const isProfileComplete = (u) => {
+  if (!u) return false;
+  if (['owner', 'admin', 'rosh'].includes(u.role)) return true;
+  const isRabbi = u.role === 'rabbi' || u.requestedType === 'rabbi';
+  return Boolean(
+    (u.name || '').trim().split(/\s+/).length >= 2 &&
+      validPhone(u.phone || '') &&
+      validEmail(u.email) &&
+      u.shiurId &&
+      (isRabbi ? u.rabbiId : u.studentStatus)
+  );
+};
+
+// דחיסת תמונה לאחסון ב-Firestore (אין Storage בתוכנית החינמית)
+export function compressImage(file, max = 1000, quality = 0.65) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      const k = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * k);
+      c.height = Math.round(img.height * k);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      resolve(c.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => reject(new Error('bad-image'));
+    img.src = url;
+  });
+}

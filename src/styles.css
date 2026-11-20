@@ -31,3 +31,11 @@ textarea { min-height:80px; }
 .ev-חופשית { border-right:5px solid var(--gold); }
 .ev-אירוע { border-right:5px solid #2e7d32; }
 button.link { border:0; background:none; color:var(--blue); text-decoration:underline; }
+.rosh-img { border-radius:50%; object-fit:cover; object-position:top; border:2px solid var(--gold); }
+.rosh-card { cursor:pointer; display:flex; flex-direction:column; gap:4px; }
+.clamp { margin:0; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; white-space:pre-wrap; }
+.thumbs { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+.thumbs img { width:100%; aspect-ratio:1; object-fit:cover; border-radius:8px; cursor:pointer; }
+.viewer { position:fixed; inset:0; background:#000d; z-index:10; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:8px; padding:12px; color:#fff; }
+.viewer img { max-width:100%; max-height:70vh; }
+.row-btns { display:flex; gap:6px; flex-wrap:wrap; }

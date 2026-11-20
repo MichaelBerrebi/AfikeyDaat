@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useCurrentUser, logout } from './store.js';
+import { useCurrentUser, logout, isProfileComplete } from './store.js';
 import Auth from './Auth.jsx';
 import { VerifyEmail, CompleteProfile } from './Gate.jsx';
 import Home from './pages/Home.jsx';
@@ -11,6 +11,8 @@ import Calendar from './pages/Calendar.jsx';
 import Parasha from './pages/Parasha.jsx';
 import Classes from './pages/Classes.jsx';
 import Rosh from './pages/Rosh.jsx';
+import Profile from './pages/Profile.jsx';
+import Events from './pages/Events.jsx';
 import Admin from './pages/Admin.jsx';
 
 export const SCREENS = {
@@ -21,7 +23,9 @@ export const SCREENS = {
   calendar: { title: 'לוח שנה', icon: '📅', C: Calendar },
   parasha: { title: 'פרשת שבוע', icon: '📜', C: Parasha },
   classes: { title: 'הכיתה שלי', icon: '🎓', C: Classes },
-  rosh: { title: 'ראש הישיבה', icon: '🕯️', C: Rosh },
+  rosh: { title: 'ראש הישיבה', icon: 'ROSH', C: Rosh },
+  profile: { title: 'פרופיל אישי', icon: '👤', C: Profile },
+  events: { title: 'אירועים ותמונות', icon: '📷', C: Events },
   admin: { title: 'ניהול', icon: '⚙️', C: Admin, managerOnly: true },
 };
 
@@ -42,15 +46,16 @@ export default function App() {
       </div>
     );
 
-  const S = screen && SCREENS[screen];
+  const mustComplete = !isProfileComplete(user);
+  const S = mustComplete ? SCREENS.profile : screen && SCREENS[screen];
   return (
     <div className="app">
       <header>
-        {S ? <button className="back" onClick={() => setScreen(null)}>→</button> : <span />}
+        {S && !mustComplete ? <button className="back" onClick={() => setScreen(null)}>→</button> : <span />}
         <h2>{S ? S.title : 'אפיקי דעת'}</h2>
         <button className="back" onClick={logout} title="יציאה">⎋</button>
       </header>
-      <main>{S ? <S.C user={user} /> : <Home user={user} go={setScreen} />}</main>
+      <main>{S ? <S.C user={user} forced={mustComplete} /> : <Home user={user} go={setScreen} />}</main>
     </div>
   );
 }

@@ -51,8 +51,9 @@ describe('app', () => {
     type(/מייל/, 'David@Example.com');
     type('סיסמה', 'secret1');
     type('תעודת זהות', '000000018');
-    const [, rabbiSel] = document.querySelectorAll('select');
-    fireEvent.change(rabbiSel, { target: { value: 'r1' } });
+    const sels = document.querySelectorAll('select');
+    fireEvent.change(sels[2], { target: { value: 's1' } });
+    fireEvent.change(document.querySelectorAll('select')[3], { target: { value: 'r1' } });
     fireEvent.click(screen.getAllByText('הרשמה').at(-1));
     await screen.findByText('ממתין לאישור');
     const { get, set, logout } = await import('./store.js');
@@ -71,7 +72,7 @@ describe('app', () => {
 
   it('local password reset with phone + id, then login with formatted phone', async () => {
     const { get, set, hashId } = await import('./store.js');
-    set('users', [...get('users'), { id: 'x1', name: 'דוד כהן', phone: '0541234567', email: '', role: 'student', status: 'approved', idHash: await hashId('000000018'), pwHash: 'old' }]);
+    set('users', [...get('users'), { id: 'x1', name: 'דוד כהן', phone: '0541234567', email: 'd@x.com', shiurId: 's1', rabbiId: 'r1', studentStatus: 'active', role: 'student', status: 'approved', idHash: await hashId('000000018'), pwHash: 'old' }]);
     render(<App />);
     fireEvent.click(screen.getByText(/שכחתי/));
     fireEvent.change(screen.getByPlaceholderText(/טלפון/), { target: { value: '0541234567' } });
@@ -91,5 +92,21 @@ describe('app', () => {
     fireEvent.change(screen.getByPlaceholderText('סיסמה'), { target: { value: 'sarisrael' } });
     fireEvent.click(screen.getAllByText('כניסה').at(-1));
     await screen.findByText(/הפרטים לא נמצאו/);
+  });
+
+  it('sub-admin cannot modify or delete the owner', async () => {
+    const { get, updateUser, removeUser, set } = await import('./store.js');
+    set('session', 'u1');
+    expect(() => removeUser('u0')).toThrow();
+    expect(() => updateUser('u0', { role: 'student' })).toThrow();
+    expect(get('users').find((u) => u.id === 'u0').role).toBe('owner');
+  });
+
+  it('incomplete student is forced to the profile screen', async () => {
+    const { get, set } = await import('./store.js');
+    set('users', [...get('users'), { id: 'x2', name: 'דוד', phone: '0541234567', email: '', role: 'student', status: 'approved', pwHash: 'x' }]);
+    set('session', 'x2');
+    render(<App />);
+    await screen.findByText(/יש להשלים את הפרופיל/);
   });
 });

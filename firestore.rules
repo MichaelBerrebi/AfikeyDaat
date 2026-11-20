@@ -9,8 +9,9 @@ service cloud.firestore {
         && profile().status == 'approved'
         && (request.auth.token.email_verified == true || request.auth.token.email.matches('.*@phone[.]yeshiva[.]app'));
     }
-    function manager() { return approved() && profile().role in ['rosh', 'admin']; }
-    function classKeyOfMine(key) { return key == 'class_' + string(profile().shiurIdx); }
+    function manager() { return approved() && profile().role in ['rosh', 'admin', 'owner']; }
+    function isOwner() { return approved() && profile().role == 'owner'; }
+    function classKeyOfMine(key) { return key == 'class_' + string(profile().shiurId); }
 
     match /profiles/{uid} {
       allow get: if signedIn() && (request.auth.uid == uid || manager());
@@ -19,13 +20,24 @@ service cloud.firestore {
       allow create: if signedIn() && request.auth.uid == uid
         && request.resource.data.role == 'student'
         && request.resource.data.status == 'pending';
-      allow update, delete: if manager();
+      // תלמיד מעדכן רק את הפרטים האישיים שלו; מנהל משנה לא נוגע במנהל הראשי
+      allow update: if (signedIn() && request.auth.uid == uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name', 'phone', 'email', 'studentStatus']))
+        || (manager() && (isOwner() || (resource.data.role != 'owner' && request.resource.data.role != 'owner')));
+      allow delete: if manager() && (isOwner() || resource.data.role != 'owner');
+    }
+
+    match /photos/{id} {
+      allow read: if approved();
+      allow create: if approved() && request.resource.data.uid == request.auth.uid && request.resource.data.data.size() < 400000;
+      allow delete: if approved() && (resource.data.uid == request.auth.uid || manager());
     }
 
     match /kv/{key} {
       // תוכן כיתה: רק לאנשי אותו שיעור, או להנהלה
-      allow read: if approved() && (!key.matches('class_.*') || manager() || classKeyOfMine(key));
-      allow write: if (key in ['schedule', 'books', 'events', 'parasha', 'roshMsgs'] && manager())
+      // רשימת השיעורים והרבנים גלויה גם לפני הרשמה
+      allow read: if key == 'classes' || approved() && (!key.matches('class_.*') || manager() || classKeyOfMine(key));
+      allow write: if (key in ['schedule', 'books', 'bookLinks', 'events', 'parasha', 'roshMsgs', 'roshPhoto', 'classes', 'contacts'] && manager())
         || (key == 'posts' && approved())
         || (key.matches('class_.*') && approved()
             && (manager() || (profile().role == 'rabbi' && classKeyOfMine(key))));

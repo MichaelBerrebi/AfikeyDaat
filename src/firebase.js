@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc, query, orderBy, limit } from 'firebase/firestore';
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged,
   GoogleAuthProvider, signInWithPopup, sendEmailVerification, sendPasswordResetEmail,
@@ -43,3 +43,8 @@ export const reloadUser = async () => {
   return auth.currentUser.emailVerified;
 };
 export const sendReset = (email) => sendPasswordResetEmail(auth, email);
+
+export const watchPhotos = (cb) =>
+  onSnapshot(query(collection(db, 'photos'), orderBy('ts', 'desc'), limit(40)), (s) => cb(s.docs.map((d) => d.data())), noop);
+export const addPhoto = (p) => setDoc(doc(db, 'photos', p.id), p);
+export const deletePhoto = (id) => deleteDoc(doc(db, 'photos', id));

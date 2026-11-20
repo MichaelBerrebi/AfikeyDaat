@@ -3,6 +3,8 @@ import { useStore, set, uid, isManager } from '../store.js';
 
 export default function Books({ user }) {
   const books = useStore('books');
+  const links = useStore('bookLinks');
+  const [lf, setLf] = useState({ title: '', url: '' });
   const [orders, setOrders] = useState({});
   const [f, setF] = useState({ title: '', price: '', sale: '', note: '' });
   const manager = isManager(user);
@@ -13,8 +15,31 @@ export default function Books({ user }) {
     setF({ title: '', price: '', sale: '', note: '' });
   };
 
+  const addLink = () => {
+    if (!lf.title.trim() || !lf.url.trim()) return;
+    const url = /^https?:\/\//.test(lf.url.trim()) ? lf.url.trim() : 'https://' + lf.url.trim();
+    set('bookLinks', [...links, { id: uid(), title: lf.title.trim(), url }]);
+    setLf({ title: '', url: '' });
+  };
+
   return (
     <>
+      <div className="card">
+        <b>הוצאות ואתרים</b>
+        {links.map((l) => (
+          <div className="row" key={l.id}>
+            <a href={l.url} target="_blank" rel="noreferrer">🔗 {l.title}</a>
+            {manager && <button onClick={() => set('bookLinks', links.filter((x) => x.id !== l.id))}>מחק</button>}
+          </div>
+        ))}
+        {manager && (
+          <>
+            <input placeholder="שם האתר" value={lf.title} onChange={(e) => setLf({ ...lf, title: e.target.value })} />
+            <input placeholder="כתובת (https://…)" dir="ltr" value={lf.url} onChange={(e) => setLf({ ...lf, url: e.target.value })} />
+            <button onClick={addLink}>הוסף קישור</button>
+          </>
+        )}
+      </div>
       {books.map((b) => (
         <div className="card" key={b.id}>
           <b>{b.title}</b>
