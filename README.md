@@ -1,4 +1,4 @@
-# ישיבת שדרות – אפליקציה
+# אפיקי דעת – אפליקציית הישיבה
 
 - פיתוח: `npm install && npm run dev` · בדיקות: `npm test`
 - אפיון: `docs/SPEC.md` · חיבור Firebase: `docs/FIREBASE.md`

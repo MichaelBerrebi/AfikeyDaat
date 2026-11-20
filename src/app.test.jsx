@@ -69,6 +69,22 @@ describe('app', () => {
     await screen.findByText(/שלום, דוד כהן/);
   });
 
+  it('local password reset with phone + id, then login with formatted phone', async () => {
+    const { get, set, hashId } = await import('./store.js');
+    set('users', [...get('users'), { id: 'x1', name: 'דוד כהן', phone: '0541234567', email: '', role: 'student', status: 'approved', idHash: await hashId('000000018'), pwHash: 'old' }]);
+    render(<App />);
+    fireEvent.click(screen.getByText(/שכחתי/));
+    fireEvent.change(screen.getByPlaceholderText(/טלפון/), { target: { value: '0541234567' } });
+    fireEvent.change(screen.getByPlaceholderText('תעודת זהות'), { target: { value: '000000018' } });
+    fireEvent.change(screen.getByPlaceholderText('סיסמה חדשה'), { target: { value: 'newpass1' } });
+    fireEvent.click(screen.getByText('אפס סיסמה'));
+    await screen.findByPlaceholderText('סיסמה');
+    fireEvent.change(screen.getByPlaceholderText(/טלפון/), { target: { value: '+972 54-123-4567' } });
+    fireEvent.change(screen.getByPlaceholderText('סיסמה'), { target: { value: ' newpass1 ' } });
+    fireEvent.click(screen.getAllByText('כניסה').at(-1));
+    await screen.findByText(/שלום, דוד כהן/);
+  });
+
   it('unknown phone cannot log in', async () => {
     render(<App />);
     fireEvent.change(screen.getByPlaceholderText(/טלפון/), { target: { value: '0541234567' } });

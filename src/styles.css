@@ -30,3 +30,4 @@ textarea { min-height:80px; }
 .ev-ישיבה { border-right:5px solid var(--blue); }
 .ev-חופשית { border-right:5px solid var(--gold); }
 .ev-אירוע { border-right:5px solid #2e7d32; }
+button.link { border:0; background:none; color:var(--blue); text-decoration:underline; }

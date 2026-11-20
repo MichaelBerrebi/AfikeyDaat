@@ -47,7 +47,7 @@ export default function App() {
     <div className="app">
       <header>
         {S ? <button className="back" onClick={() => setScreen(null)}>→</button> : <span />}
-        <h2>{S ? S.title : 'ישיבת שדרות'}</h2>
+        <h2>{S ? S.title : 'אפיקי דעת'}</h2>
         <button className="back" onClick={logout} title="יציאה">⎋</button>
       </header>
       <main>{S ? <S.C user={user} /> : <Home user={user} go={setScreen} />}</main>

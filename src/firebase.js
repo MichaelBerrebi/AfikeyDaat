@@ -2,7 +2,7 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore, doc, collection, onSnapshot, setDoc, deleteDoc } from 'firebase/firestore';
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged,
-  GoogleAuthProvider, signInWithPopup, sendEmailVerification,
+  GoogleAuthProvider, signInWithPopup, sendEmailVerification, sendPasswordResetEmail,
 } from 'firebase/auth';
 
 // Firebase בתוכנית Spark (חינמית). בלי משתני VITE_FIREBASE_* האפליקציה עובדת מקומית בלבד.
@@ -42,3 +42,4 @@ export const reloadUser = async () => {
   await auth.currentUser.getIdToken(true);
   return auth.currentUser.emailVerified;
 };
+export const sendReset = (email) => sendPasswordResetEmail(auth, email);

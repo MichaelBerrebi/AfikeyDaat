@@ -3,6 +3,8 @@ on:
   workflow_dispatch:
   push:
     branches: [main]
+permissions:
+  contents: write
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -20,8 +22,15 @@ jobs:
           VITE_FIREBASE_AUTH_DOMAIN: ${{ secrets.VITE_FIREBASE_AUTH_DOMAIN }}
           VITE_FIREBASE_PROJECT_ID: ${{ secrets.VITE_FIREBASE_PROJECT_ID }}
           VITE_FIREBASE_APP_ID: ${{ secrets.VITE_FIREBASE_APP_ID }}
+      # חתימה קבועה, כדי שאפשר יהיה לעדכן את האפליקציה מעל גרסה קודמת
+      - run: mkdir -p ~/.android && cp debug.keystore ~/.android/debug.keystore
       - run: cd android && ./gradlew assembleDebug
+      - run: cp android/app/build/outputs/apk/debug/app-debug.apk afikey-daat.apk
       - uses: actions/upload-artifact@v4
         with:
-          name: sderot-yeshiva-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: afikey-daat-apk
+          path: afikey-daat.apk
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v1.0.${{ github.run_number }}" afikey-daat.apk --title "אפיקי דעת v1.0.${{ github.run_number }}" --notes "גרסה ראשונה"

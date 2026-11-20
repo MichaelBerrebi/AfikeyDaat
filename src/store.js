@@ -73,7 +73,9 @@ const read = (k) => {
     return SEED[k];
   }
   const raw = localStorage.getItem(PREFIX + k);
-  return raw === null ? SEED[k] : JSON.parse(raw);
+  const v = raw === null ? SEED[k] : JSON.parse(raw);
+  // מנהל ברירת המחדל תמיד מסונכרן עם הקוד, גם אם נשארו נתונים ישנים בטלפון
+  return k === 'users' ? [...SEED.users, ...v.filter((u) => u.id !== SEED.users[0].id)] : v;
 };
 export const get = read;
 export const set = (k, v) => {
@@ -106,12 +108,17 @@ const hashWith = async (salt, s) => {
 export const hashId = (idNumber) => hashWith('sy-salt:', idNumber);
 
 const PHONE_DOMAIN = '@phone.yeshiva.app';
-const authEmail = (identifier) => (identifier.includes('@') ? identifier.trim().toLowerCase() : `${identifier.trim()}${PHONE_DOMAIN}`);
+export const normPhone = (p) => {
+  const d = String(p).replace(/\D/g, '');
+  return d.startsWith('972') ? '0' + d.slice(3) : d;
+};
+const normId = (s) => (s.includes('@') ? s.trim().toLowerCase() : normPhone(s));
+const authEmail = (identifier) => (identifier.includes('@') ? normId(identifier) : `${normId(identifier)}${PHONE_DOMAIN}`);
 
 export const isRealEmail = (e) => Boolean(e) && !e.endsWith(PHONE_DOMAIN);
 
 const buildProfile = async ({ name, phone, email, shiur, rabbiId, idNumber }) => ({
-  name, phone, email: email || '', role: 'student', status: 'pending',
+  name, phone: normPhone(phone), email: email || '', role: 'student', status: 'pending',
   rabbiId, shiur, shiurIdx: SHIURIM.indexOf(shiur), idHash: await hashId(idNumber),
 });
 
@@ -130,7 +137,7 @@ export async function register(f) {
     return;
   }
   const users = read('users');
-  if (users.some((u) => u.phone === f.phone || (f.email && u.email === f.email))) throw new Error('exists');
+  if (users.some((u) => u.phone === normPhone(f.phone) || (f.email && u.email === f.email))) throw new Error('exists');
   const u = { id: uid(), ...profile, pwHash: await pwHash(f.password) };
   set('users', [...users, u]);
   set('session', u.id);
@@ -152,10 +159,23 @@ export async function login(identifier, password) {
   password = password.trim();
   if (cloudEnabled) return fb.signInEmail(authEmail(identifier), password);
   const h = await pwHash(password);
-  const id = identifier.trim().toLowerCase();
+  const id = normId(identifier);
   const u = read('users').find((x) => (x.phone === id || x.email === id) && x.pwHash === h);
   if (!u) throw new Error('bad-credentials');
   set('session', u.id);
+}
+
+// איפוס סיסמה: במייל נשלח קישור; במצב מקומי מאמתים טלפון + ת"ז
+export async function resetPassword({ identifier, idNumber, newPassword }) {
+  if (cloudEnabled) {
+    if (!identifier.includes('@')) throw new Error('phone-only');
+    return fb.sendReset(normId(identifier));
+  }
+  const id = normId(identifier);
+  const idHash = await hashId(idNumber);
+  const u = read('users').find((x) => (x.phone === id || x.email === id) && x.idHash && x.idHash === idHash);
+  if (!u) throw new Error('bad-credentials');
+  updateUser(u.id, { pwHash: await pwHash(newPassword.trim()) });
 }
 
 export function logout() {
