@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useCurrentUser, logout } from './store.js';
 import Auth from './Auth.jsx';
+import { VerifyEmail, CompleteProfile } from './Gate.jsx';
 import Home from './pages/Home.jsx';
 import Schedule from './pages/Schedule.jsx';
 import Zmanim from './pages/Zmanim.jsx';
@@ -25,10 +26,12 @@ export const SCREENS = {
 };
 
 export default function App() {
-  const { user, ready } = useCurrentUser();
+  const { user, ready, needsProfile, needsVerify, authUser } = useCurrentUser();
   const [screen, setScreen] = useState(null);
 
   if (!ready) return <p className="hint" style={{ padding: 20 }}>טוען…</p>;
+  if (needsVerify) return <VerifyEmail email={authUser.email} />;
+  if (needsProfile) return <CompleteProfile authUser={authUser} />;
   if (!user) return <Auth />;
   if (user.status !== 'approved')
     return (

@@ -2,6 +2,7 @@ import { useSyncExternalStore } from 'react';
 import * as fb from './firebase.js';
 
 const { cloudEnabled } = fb;
+export { cloudEnabled };
 
 // שכבת נתונים: כרגע localStorage. בהמשך מחליפים ב-Firebase/שרת בלי לגעת במסכים.
 const PREFIX = 'sy_';
@@ -52,7 +53,7 @@ const SEED = {
   parasha: { title: '', url: '', text: 'ממתין להעלאת דף פרשת השבוע מההנהלה.' },
   roshMsgs: [{ id: 'm1', title: 'שיחה לקראת השבת', body: 'כאן יופיעו דברי ראש הישיבה.', ts: Date.now() }],
   users: [
-    { id: 'u0', name: 'מנהל', phone: '0500000000', email: '', role: 'admin', status: 'approved', rabbiId: null, shiur: null, shiurIdx: null, idHash: 'edd8d78f4d87d4394fe193a0643ded33e9852d5fe243a2e8c2fedf25d4606a47', pwHash: '5399bc6484f724085ee0a3b24b1b077e3a979c27b96cad85fe023f2ffa6f225c' },
+    { id: 'u0', name: 'מנהל', phone: '0544534345', email: '', role: 'admin', status: 'approved', rabbiId: null, shiur: null, shiurIdx: null, idHash: '', pwHash: 'ff2a789fb51fa47d789bf800682b03e4296d78f2936900c052df9fdae56d7209' },
   ],
   session: null,
 };
@@ -104,27 +105,51 @@ const hashWith = async (salt, s) => {
 };
 export const hashId = (idNumber) => hashWith('sy-salt:', idNumber);
 
-const authEmail = (identifier) => (identifier.includes('@') ? identifier.trim().toLowerCase() : `${identifier.trim()}@phone.yeshiva.app`);
+const PHONE_DOMAIN = '@phone.yeshiva.app';
+const authEmail = (identifier) => (identifier.includes('@') ? identifier.trim().toLowerCase() : `${identifier.trim()}${PHONE_DOMAIN}`);
 
-export async function register({ name, phone, email, password, shiur, rabbiId, idNumber }) {
-  const idHash = await hashId(idNumber);
-  const profile = {
-    name, phone, email: email || '', role: 'student', status: 'pending',
-    rabbiId, shiur, shiurIdx: SHIURIM.indexOf(shiur), idHash,
-  };
+export const isRealEmail = (e) => Boolean(e) && !e.endsWith(PHONE_DOMAIN);
+
+const buildProfile = async ({ name, phone, email, shiur, rabbiId, idNumber }) => ({
+  name, phone, email: email || '', role: 'student', status: 'pending',
+  rabbiId, shiur, shiurIdx: SHIURIM.indexOf(shiur), idHash: await hashId(idNumber),
+});
+
+export async function register(f) {
+  const profile = await buildProfile(f);
   if (cloudEnabled) {
-    const id = await fb.signUpEmail(authEmail(email || phone), password);
-    await fb.saveProfile(id, profile);
+    cloud.registering = true;
+    try {
+      const id = await fb.signUpEmail(authEmail(f.email || f.phone), f.password);
+      await fb.saveProfile(id, profile);
+      if (isRealEmail(f.email)) await fb.sendVerify();
+    } finally {
+      cloud.registering = false;
+      notify();
+    }
     return;
   }
   const users = read('users');
-  if (users.some((u) => u.phone === phone || (email && u.email === email))) throw new Error('exists');
-  const u = { id: uid(), ...profile, pwHash: await pwHash(password) };
+  if (users.some((u) => u.phone === f.phone || (f.email && u.email === f.email))) throw new Error('exists');
+  const u = { id: uid(), ...profile, pwHash: await pwHash(f.password) };
   set('users', [...users, u]);
   set('session', u.id);
 }
 
+// משתמש שנכנס עם גוגל ועדיין אין לו פרופיל
+export async function completeProfile(f) {
+  const a = cloud.authUser;
+  await fb.saveProfile(a.uid, await buildProfile({ ...f, email: a.email }));
+}
+
+export const googleSignIn = () => fb.googleSignIn();
+export const resendVerification = () => fb.sendVerify();
+export async function checkVerified() {
+  if (await fb.reloadUser()) location.reload();
+}
+
 export async function login(identifier, password) {
+  password = password.trim();
   if (cloudEnabled) return fb.signInEmail(authEmail(identifier), password);
   const h = await pwHash(password);
   const id = identifier.trim().toLowerCase();
@@ -157,6 +182,7 @@ if (cloudEnabled) {
     unsubMe?.(); unsubs.forEach((f) => f()); unsubProfiles?.();
     unsubMe = null; unsubs = []; unsubProfiles = null;
     cloud.me = null; cloud.users = [];
+    cloud.authUser = a ? { uid: a.uid, email: a.email || '', emailVerified: a.emailVerified, name: a.displayName || '' } : null;
     if (!a) { cloud.authReady = true; return notify(); }
     unsubMe = fb.watchProfile(a.uid, (p) => {
       cloud.me = p;
@@ -173,7 +199,16 @@ if (cloudEnabled) {
 
 export function useCurrentUser() {
   useSyncExternalStore(subscribe, () => version);
-  if (cloudEnabled) return { user: cloud.me || null, ready: cloud.authReady };
+  if (cloudEnabled) {
+    const au = cloud.authUser;
+    return {
+      user: cloud.me || null,
+      ready: cloud.authReady,
+      needsProfile: Boolean(au && !cloud.me && !cloud.registering),
+      needsVerify: Boolean(au && isRealEmail(au.email) && !au.emailVerified),
+      authUser: au,
+    };
+  }
   const id = read('session');
   return { user: read('users').find((u) => u.id === id) || null, ready: true };
 }

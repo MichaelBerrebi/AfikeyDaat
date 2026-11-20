@@ -6,7 +6,8 @@ service cloud.firestore {
     function approved() {
       return signedIn()
         && exists(/databases/$(database)/documents/profiles/$(request.auth.uid))
-        && profile().status == 'approved';
+        && profile().status == 'approved'
+        && (request.auth.token.email_verified == true || request.auth.token.email.matches('.*@phone[.]yeshiva[.]app'));
     }
     function manager() { return approved() && profile().role in ['rosh', 'admin']; }
     function classKeyOfMine(key) { return key == 'class_' + string(profile().shiurIdx); }

@@ -22,7 +22,7 @@ beforeEach(() => {
 const login = async (phone) => {
   render(<App />);
   fireEvent.change(screen.getByPlaceholderText(/טלפון/), { target: { value: phone } });
-  fireEvent.change(screen.getByPlaceholderText('סיסמה'), { target: { value: 'admin123' } });
+  fireEvent.change(screen.getByPlaceholderText('סיסמה'), { target: { value: 'sarisrael' } });
   fireEvent.click(screen.getAllByText('כניסה').at(-1));
   await screen.findByText(/שלום, מנהל/);
 };
@@ -34,7 +34,7 @@ describe('app', () => {
   });
 
   it('admin can open every screen without crashing', async () => {
-    await login('0500000000');
+    await login('0544534345');
     for (const s of Object.values(SCREENS)) {
       fireEvent.click(screen.getByText(s.title, { selector: 'button' }));
       await waitFor(() => expect(screen.getByRole('heading', { name: s.title })).toBeTruthy());
@@ -72,7 +72,7 @@ describe('app', () => {
   it('unknown phone cannot log in', async () => {
     render(<App />);
     fireEvent.change(screen.getByPlaceholderText(/טלפון/), { target: { value: '0541234567' } });
-    fireEvent.change(screen.getByPlaceholderText('סיסמה'), { target: { value: 'admin123' } });
+    fireEvent.change(screen.getByPlaceholderText('סיסמה'), { target: { value: 'sarisrael' } });
     fireEvent.click(screen.getAllByText('כניסה').at(-1));
     await screen.findByText(/הפרטים לא נמצאו/);
   });

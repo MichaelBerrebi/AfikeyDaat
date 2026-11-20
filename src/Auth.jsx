@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { RABBIS, SHIURIM, register, login, validIsraeliId } from './store.js';
+import { RABBIS, SHIURIM, register, login, googleSignIn, cloudEnabled, validIsraeliId } from './store.js';
 
 const msg = (e) => {
   const c = e?.code || e?.message || '';
@@ -17,6 +17,10 @@ export default function Auth() {
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const up = (k) => (e) => setF({ ...f, [k]: e.target.value });
+  const google = async () => {
+    setErr('');
+    try { await googleSignIn(); } catch { setErr('ההתחברות עם גוגל נכשלה'); }
+  };
   const rabbis = RABBIS.filter((r) => r.shiur === f.shiur);
 
   const submit = async () => {
@@ -67,8 +71,9 @@ export default function Auth() {
       )}
       <input placeholder="סיסמה" type="password" value={f.password} onChange={up('password')} />
       <button className="primary" disabled={busy} onClick={submit}>{mode === 'login' ? 'כניסה' : 'הרשמה'}</button>
+      {cloudEnabled && <button onClick={google}>התחברות עם חשבון גוגל</button>}
       {err && <p className="err">{err}</p>}
-      <p className="hint">ההרשמה מאושרת ידנית על ידי הנהלת הישיבה. דמו מנהל: 0500000000 / סיסמה admin123</p>
+      <p className="hint">ההרשמה מאושרת ידנית על ידי הנהלת הישיבה. הרשמה במייל דורשת אימות בקישור שיישלח אליו.</p>
     </div>
   );
 }
