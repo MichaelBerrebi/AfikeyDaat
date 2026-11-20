@@ -50,6 +50,13 @@ const SEED = {
     { t: '19:00', title: 'ארוחת ערב' },
     { t: '20:00', title: 'סדר ג׳ – מוסר' },
   ],
+  scheduleFri: [
+    { t: '06:30', title: 'תפילת שחרית' },
+    { t: '07:30', title: 'ארוחת בוקר' },
+    { t: '08:30', title: 'סדר בוקר' },
+    { t: '11:00', title: 'סיום סדרי הלימוד' },
+    { t: '12:30', title: 'ארוחת צהריים' },
+  ],
   posts: [
     { id: 'p1', cat: 'אבידה', title: 'נמצאה כיפה שחורה', body: 'בבית המדרש ליד ארון 3', author: 'דני', ts: Date.now() - 3600e3 },
     { id: 'p2', cat: 'טרמפים', title: 'טרמפ לירושלים', body: 'יוצא ביום ה׳ ב-14:00, 3 מקומות פנויים', author: 'יוסי', ts: Date.now() - 7200e3 },
@@ -86,7 +93,7 @@ const SEED = {
 };
 
 export const classKey = (shiurId) => 'class_' + shiurId;
-const SHARED_KEYS = ['schedule', 'posts', 'books', 'bookLinks', 'events', 'parasha', 'roshMsgs', 'roshPhoto', 'contacts'];
+const SHARED_KEYS = ['schedule', 'scheduleFri', 'posts', 'books', 'bookLinks', 'events', 'parasha', 'roshMsgs', 'roshPhoto', 'contacts'];
 const defaults = (k) => (k in SEED ? SEED[k] : k.startsWith('class_') ? [] : undefined);
 
 const cloud = {};
@@ -223,6 +230,17 @@ export async function resetPassword({ identifier, idNumber, newPassword }) {
   const u = read('users').find((x) => (x.phone === id || x.email === id) && x.idHash && x.idHash === idHash);
   if (!u) throw new Error('bad-credentials');
   updateUser(u.id, { pwHash: await pwHash(newPassword.trim()) }, true);
+}
+
+// איפוס סיסמה על ידי מנהל: במצב מקומי קובעים סיסמה חדשה; בענן נשלח מייל איפוס
+export async function adminResetPassword(target, newPassword) {
+  if (cloudEnabled) {
+    if (!isRealEmail(target.email)) throw new Error('phone-only');
+    return fb.sendReset(target.email);
+  }
+  const me = currentLocal();
+  if (!me || !canManage(me, target)) throw new Error('forbidden');
+  updateUser(target.id, { pwHash: await pwHash(newPassword.trim()) });
 }
 
 export function logout() {

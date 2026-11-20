@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react';
 import { useStore, isManager } from '../store.js';
 import { getParashaName, getZmanim, getDafYomi } from '../hebcal.js';
 import RoshPhoto from '../RoshPhoto.jsx';
-import { SCREENS } from '../App.jsx';
+import ShabbatTimes from '../ShabbatTimes.jsx';
+import { SCREENS, HOME_ORDER } from '../App.jsx';
 
 const nowHM = () => new Date().toTimeString().slice(0, 5);
 
 export default function Home({ user, go }) {
   const schedule = useStore('schedule');
+  const fri = useStore('scheduleFri');
   const roshMsgs = useStore('roshMsgs');
   const [parasha, setParasha] = useState(null);
   const [daf, setDaf] = useState(null);
@@ -19,7 +21,9 @@ export default function Home({ user, go }) {
     getZmanim().then((t) => setShkia(t.sunset?.slice(11, 16))).catch(() => {});
   }, []);
 
-  const next = schedule.find((s) => s.t >= nowHM());
+  const dow = new Date().getDay();
+  const today = dow === 5 ? fri : schedule;
+  const next = dow === 6 ? null : today.find((s) => s.t >= nowHM());
   const last = roshMsgs[0];
 
   return (
@@ -38,16 +42,17 @@ export default function Home({ user, go }) {
       )}
       <div className="card hl">
         <small>הבא בסדר היום</small>
-        <b>{next ? `${next.t} · ${next.title}` : 'סיום סדר היום'}</b>
+        <b>{dow === 6 ? 'שבת שלום' : next ? `${next.t} · ${next.title}` : 'סיום סדר היום'}</b>
       </div>
+      {dow >= 5 && <ShabbatTimes />}
       <div className="card row">
         {parasha && <span>📜 {parasha}</span>}
         {daf && <span>📖 {daf}</span>}
         {shkia && <span>🌇 שקיעה {shkia}</span>}
       </div>
       <div className="grid">
-        {Object.entries(SCREENS)
-          .filter(([, s]) => !s.managerOnly || isManager(user))
+        {HOME_ORDER.filter((k) => !SCREENS[k].managerOnly || isManager(user))
+          .map((k) => [k, SCREENS[k]])
           .map(([k, s]) => (
             <button key={k} onClick={() => go(k)}>
               <span>{s.icon === 'ROSH' ? <RoshPhoto size={44} /> : s.icon}</span>

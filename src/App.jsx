@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useReminderSync } from './reminders.js';
+import Reminders from './pages/Reminders.jsx';
 import { useCurrentUser, logout, isProfileComplete } from './store.js';
 import Auth from './Auth.jsx';
 import { VerifyEmail, CompleteProfile } from './Gate.jsx';
@@ -23,15 +25,41 @@ export const SCREENS = {
   calendar: { title: 'לוח שנה', icon: '📅', C: Calendar },
   parasha: { title: 'פרשת שבוע', icon: '📜', C: Parasha },
   classes: { title: 'הכיתה שלי', icon: '🎓', C: Classes },
-  rosh: { title: 'ראש הישיבה', icon: 'ROSH', C: Rosh },
+  rosh: { title: 'לשכת ראש הישיבה', icon: 'ROSH', C: Rosh },
   profile: { title: 'פרופיל אישי', icon: '👤', C: Profile },
   events: { title: 'אירועים ותמונות', icon: '📷', C: Events },
+  reminders: { title: 'תזכורות', icon: '🔔', C: Reminders },
   admin: { title: 'ניהול', icon: '⚙️', C: Admin, managerOnly: true },
 };
+
+// סדר הכפתורים במסך הבית (שתי עמודות)
+export const HOME_ORDER = ['rosh', 'parasha', 'schedule', 'zmanim', 'classes', 'calendar', 'board', 'books', 'events', 'profile', 'reminders', 'admin'];
+
+const dateFmt = new Intl.DateTimeFormat('he-IL', { weekday: 'long', day: 'numeric', month: 'numeric' });
+const hebFmt = new Intl.DateTimeFormat('he-IL-u-ca-hebrew', { day: 'numeric', month: 'long' });
+function Clock() {
+  const [now, setNow] = useState(new Date());
+  useEffect(() => { const i = setInterval(() => setNow(new Date()), 15000); return () => clearInterval(i); }, []);
+  return (
+    <div className="clock">
+      {dateFmt.format(now)} · {hebFmt.format(now)} · <b>{now.toTimeString().slice(0, 5)}</b>
+    </div>
+  );
+}
 
 export default function App() {
   const { user, ready, needsProfile, needsVerify, authUser } = useCurrentUser();
   const [screen, setScreen] = useState(null);
+  useReminderSync(Boolean(user && user.status === 'approved'));
+
+  // כפתור "חזור" של הטלפון: כל מסך נכנס להיסטוריה של הדפדפן
+  useEffect(() => {
+    history.replaceState({ s: null }, '');
+    const onPop = (e) => setScreen(e.state?.s ?? null);
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+  const go = (s) => { history.pushState({ s }, ''); setScreen(s); };
 
   if (!ready) return <p className="hint" style={{ padding: 20 }}>טוען…</p>;
   if (needsVerify) return <VerifyEmail email={authUser.email} />;
@@ -51,11 +79,14 @@ export default function App() {
   return (
     <div className="app">
       <header>
-        {S && !mustComplete ? <button className="back" onClick={() => setScreen(null)}>→</button> : <span />}
+        <div className="hrow">
+        {S && !mustComplete ? <button className="back" onClick={() => history.back()}>→</button> : <span />}
         <h2>{S ? S.title : <><img className="hdr-logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="" /> אפיקי דעת</>}</h2>
         <button className="back" onClick={logout} title="יציאה">⎋</button>
+        </div>
+        <Clock />
       </header>
-      <main>{S ? <S.C user={user} forced={mustComplete} /> : <Home user={user} go={setScreen} />}</main>
+      <main>{S ? <S.C user={user} forced={mustComplete} /> : <Home user={user} go={go} />}</main>
     </div>
   );
 }

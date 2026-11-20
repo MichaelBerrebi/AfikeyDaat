@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useStore, set, uid, updateUser, removeUser, useClasses, isManager, canManage, ROLE_LABELS, STUDENT_STATUS } from '../store.js';
+import { useStore, set, uid, updateUser, removeUser, adminResetPassword, useClasses, isManager, canManage, ROLE_LABELS, STUDENT_STATUS, cloudEnabled } from '../store.js';
 
 const ROLES = ['student', 'rabbi', 'rosh', 'admin'];
 
@@ -84,6 +84,21 @@ export default function Admin({ user }) {
   const [q, setQ] = useState('');
   const shiurName = (id) => shiurim.find((s) => s.id === id)?.name || '—';
   const assignShiur = (u, shiurId) => updateUser(u.id, { shiurId, rabbiId: '' });
+  const resetPw = async (u) => {
+    try {
+      if (cloudEnabled) {
+        await adminResetPassword(u);
+        alert('נשלח מייל איפוס סיסמה אל ' + u.email);
+      } else {
+        const pw = prompt('סיסמה זמנית חדשה (לפחות 6 תווים) עבור ' + u.name);
+        if (!pw || pw.trim().length < 6) return;
+        await adminResetPassword(u, pw);
+        alert('הסיסמה עודכנה. מסור למשתמש את הסיסמה החדשה.');
+      }
+    } catch (e) {
+      alert(e?.message === 'phone-only' ? 'למשתמש אין מייל – אי אפשר לשלוח איפוס. בקש ממנו להירשם מחדש עם מייל.' : 'הפעולה נכשלה');
+    }
+  };
   const approve = (u) => updateUser(u.id, { status: 'approved', ...(u.requestedType === 'rabbi' && u.role === 'student' ? { role: 'rabbi' } : {}) });
   const list = users.filter((u) => !q || `${u.name} ${u.phone} ${u.email}`.includes(q));
 
@@ -119,6 +134,7 @@ export default function Admin({ user }) {
                 {u.status !== 'approved'
                   ? <button className="primary" onClick={() => approve(u)}>אשר</button>
                   : <button onClick={() => updateUser(u.id, { status: 'pending' })}>השהה</button>}
+                <button onClick={() => resetPw(u)}>איפוס סיסמה</button>
                 <button onClick={() => confirm('למחוק משתמש?') && removeUser(u.id)}>מחק</button>
               </>
             )}

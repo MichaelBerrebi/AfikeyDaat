@@ -101,7 +101,7 @@ export default function Auth() {
       )}
       <input placeholder="סיסמה" type="password" value={f.password} onChange={up('password')} />
       <button className="primary" disabled={busy} onClick={submit}>{mode === 'login' ? 'כניסה' : 'הרשמה'}</button>
-      {mode === 'login' && <button className="link" onClick={() => { setForgot(true); setErr(''); }}>שכחתי שם משתמש / סיסמה</button>}
+      {mode === 'login' && <button onClick={() => { setForgot(true); setErr(''); }}>🔑 שכחתי שם משתמש / סיסמה</button>}
       {info && <p className="hint">{info}</p>}
       {cloudEnabled && <button onClick={google}>התחברות עם חשבון גוגל</button>}
       {err && <p className="err">{err}</p>}

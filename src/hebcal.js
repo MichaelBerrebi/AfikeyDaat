@@ -32,3 +32,29 @@ export async function getDafYomi() {
   const items = await json(`https://www.hebcal.com/hebcal?v=1&cfg=json&F=on&lg=he&start=${fmtDate(new Date())}&end=${fmtDate(new Date())}`);
   return items.items?.[0]?.hebrew || null;
 }
+
+const hm = (iso) => iso.slice(11, 16);
+const addMin = (iso, m) => {
+  const [h, mi] = hm(iso).split(':').map(Number);
+  const t = (h * 60 + mi + m + 1440) % 1440;
+  return `${String(Math.floor(t / 60)).padStart(2, '0')}:${String(t % 60).padStart(2, '0')}`;
+};
+
+// הדלקת נרות, צאת שבת ורבנו תם (72 דקות אחרי השקיעה) לשבת הקרובה
+export async function getShabbatTimes() {
+  const j = await json(`https://www.hebcal.com/shabbat?cfg=json&latitude=${LAT}&longitude=${LON}&tzid=${TZ}&b=18&M=on&lg=he`);
+  const candles = j.items.find((i) => i.category === 'candles');
+  const havdalah = j.items.find((i) => i.category === 'havdalah');
+  const parasha = j.items.find((i) => i.category === 'parashat');
+  let rt = null;
+  if (havdalah) {
+    const z = await getZmanim(new Date(havdalah.date.slice(0, 10) + 'T12:00:00'));
+    if (z.sunset) rt = addMin(z.sunset, 72);
+  }
+  return {
+    parasha: parasha?.hebrew,
+    candles: candles && hm(candles.date),
+    havdalah: havdalah && hm(havdalah.date),
+    rabbeinuTam: rt,
+  };
+}

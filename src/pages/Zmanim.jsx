@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { getZmanim } from '../hebcal.js';
+import ShabbatTimes from '../ShabbatTimes.jsx';
 
 const LABELS = [
   ['alotHaShachar', 'עלות השחר'],
@@ -25,6 +26,7 @@ export default function Zmanim() {
   if (!times) return <p>טוען…</p>;
   return (
     <>
+      <ShabbatTimes />
       <p className="hint">שדרות · היום</p>
       {LABELS.filter(([k]) => times[k]).map(([k, l]) => (
         <div className="card row" key={k}><span>{l}</span><b>{times[k].slice(11, 16)}</b></div>

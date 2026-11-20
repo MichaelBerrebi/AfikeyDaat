@@ -39,6 +39,7 @@ describe('app', () => {
       fireEvent.click(screen.getByText(s.title, { selector: 'button' }));
       await waitFor(() => expect(screen.getByRole('heading', { name: s.title })).toBeTruthy());
       fireEvent.click(document.querySelector('header .back'));
+      await waitFor(() => expect(screen.getByText(/שלום, מנהל/)).toBeTruthy());
     }
   });
 
